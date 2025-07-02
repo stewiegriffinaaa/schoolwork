@@ -13,8 +13,10 @@
 //先读出所有文件到队列里面，文本文件储存方式应该是 xxx xx
 using namespace std;
 #include<sstream>
+#include "ConsumeControl.h"
 void showgoods(Goods& a);
 void showgoodTables(GoodsTable& a);
+Goods getgoods(vector<Goods> num, string id);
 bool SearchById(string id, Goods temp);/*注：这里面有多次读取文件操作，之后要试试能不能给他封装到一个函数中当作形参传进去，否则太消耗性能*/
 bool SearchByName(string name, Goods temp);
 void showgoods(Goods& a) {
@@ -23,6 +25,39 @@ void showgoods(Goods& a) {
 void showgoodTables(GoodsTable& a) {
     cout << "目录名称" << a.getName() << " 目录编号" << a.getId() << " 目录子节点等级" << a.getLevel() << " 子目录数量" << a.getNum() << " 目录时间" << a.getTime() << endl;
 }
+Goods getgoods(vector<Goods> num, string id) {
+    for (auto it = num.begin(); it != num.end(); it++) {
+        if (id == it->getId()) {
+            return *it;
+        }
+    }
+}
+ShopCar& getShopCar(vector<ShopCar>& customer1,vector<ShopLinked>& customer2,Consume& example) {
+    if (customer1.empty()) {
+        ShopCar _example(example);
+        customer1.push_back(_example);
+        ShopLinked _example1(_example);
+        customer2.push_back(_example1);
+        return customer1.back();
+    }
+    for (auto it = customer1.begin(); it != customer1.end(); it++) {
+        if (example.getNum() == it->getShopCarNum() ){
+            return *it;
+        }
+    }
+    ShopCar _example(example);
+    customer1.push_back(_example);
+    ShopLinked _example1(_example);
+    customer2.push_back(_example1);
+    return customer1.back();
+}
+ShopLinked& getShopLinked(vector<ShopLinked>& customer2, ShopCar& example) {
+    for (auto it = customer2.begin(); it != customer2.end(); it++) {
+        if (example.getShopCarNum() == it->getStream())
+            return *it;
+    }
+}
+
 
 
 
@@ -32,12 +67,192 @@ int main() {
     fstream file;
     string op;
     cout << "\n请选择操作类型：\n";
-    cout << "\tA: 顾客功能\tB: 商品管理\tC:商品分类目录管理 \tD: 购物车管理\tE: 退出系统" << endl;
+    cout << "请输出你要操作的业务\nA:顾客\nB:商品\nC:购物车\nD购物车商品信息\nE:商品分类目录\nF:保存此次操作并退出" << endl;
     cout << "请输入选项（A/B/C/D/E）: ";
     cin >> str;
-    while (str != "E") {
-        if (str == "A") { //顾客操作
+    while (str != "F") {
+        vector<Goods> goods;
+        Goods temp1;
+        file.open("goods.txt", ios::in);
+        while (file >> temp1) {
+            goods.push_back(temp1);
+        }
+        file.close();
+        vector<Consume> customer;
+        vector<ShopCar> customer1;
+        vector<ShopLinked> customer2;
+        Consume mid;
+        file.open("Customers.txt", ios::in);
+        while (file >> mid) {
+            customer.push_back(mid);
+        }
+        file.close();
+        file.open("ShopCarAll.txt", ios::in);
+        ShopCar currentCar;
+        string currentShopCarNum;
+        string line;
 
+        while (getline(file, line)) {
+            istringstream iss(line);
+            string shopCarNum, goodsId;
+            Time start, end, addTime;
+
+            if (iss >> shopCarNum >> start >> end >> goodsId >> addTime) {
+                // 当检测到新的购物车编号时
+                if (currentShopCarNum != shopCarNum) {
+                    // 如果不是首次处理，添加前一个购物车到容器
+                    if (!currentCar.getShopCarNum().empty()) {
+                        customer1.push_back(currentCar);
+                        //           cout << "添加购物车: " << currentShopCarNum << endl;
+                    }
+
+                    // 创建新的购物车对象
+                    currentCar = ShopCar();
+                    currentCar.getShopCarNum() = shopCarNum;
+                    currentCar.getConsumeNum() = shopCarNum;
+                    currentCar.getStart() = start;
+                    currentCar.getEnd() = end;
+                    currentShopCarNum = shopCarNum;
+                }
+
+                // 添加商品到当前购物车
+                Goods foundGoods = getgoods(goods, goodsId);
+                if (foundGoods.getId() != "") {
+                    currentCar.getNum().push_back(foundGoods);
+                    currentCar.getAddnum().push_back(addTime);
+                }
+            }
+        }
+        if (!currentCar.getShopCarNum().empty()) {
+            customer1.push_back(currentCar);
+            //   cout << "添加购物车: " << currentShopCarNum << endl;
+        }
+        file.close();
+        for (vector<ShopCar>::iterator it = customer1.begin(); it != customer1.end(); it++) {
+            ShopLinked _mid(*it);
+            customer2.push_back(_mid);
+        }
+        if (str == "A") { //顾客操作
+            cout << " 请输入你想操作的顾客信息 " << endl;
+            Consume example;
+            cin >> example;
+            bool flag = false;
+            for (vector<Consume>::iterator it = customer.begin(); it != customer.end(); it++) {
+                if (example.getNum() == (*it).getNum()) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag) {
+                cout << "已查询到此顾客信息" << endl;
+                cout << "请选择你想要的操作：" << endl;
+                cout << "A.向该顾客购物车中增加商品" << endl << "B.向该顾客购物车中减少商品" << endl;
+                cout << "C.删除该顾客信息" << endl;
+                cout << "D.展现该用户购物车统计信息" << endl;
+                string choice;
+                cin >> choice;
+                if (choice == "A") {
+                    string mid = "继续";
+                    while (mid != "停止") {
+
+                        Goods type;
+                        int numb;
+                        string id;
+                        cout << "请输入商品编号" << endl;
+                        cin >> id;
+                        type = getgoods(goods, id);
+                        cout << "请输入新加入的商品数量" << endl;
+                        cin >> numb;
+                        getShopCar(customer1,customer2, example);
+                        ConsumeAdd(getShopCar(customer1,customer2,example),getShopLinked(customer2, getShopCar(customer1,customer2, example)),type,numb);
+                        cout << "继续还是停止？（输入“继续”或者“停止”）" << endl;
+                        cin >> mid;
+                        while (mid != "继续" && mid != "停止") {
+                            cout << "输入错误内容，请重新输入" << endl;
+                            cin >> mid;
+                        }
+                    }
+                }
+                if (choice == "B") {
+                    string mid = "继续";
+                    while (mid != "停止") {
+                        Goods type;
+                        int numb;
+                        string id;
+                        cout << "请输入商品编号" << endl;
+                        cin >> id;
+                        type = getgoods(goods, id);
+                        cout << "请输入要削减的商品数量" << endl;
+                        cin >> numb;
+                        ConsumeDec(getShopCar(customer1,customer2, example), getShopLinked(customer2, getShopCar(customer1,customer2, example)), type, numb);
+                        for (vector<ShopCar>::iterator it = customer1.begin(); it != customer1.end(); it++) {
+                            if (it->getNum().size() == 0) {
+                                it = customer1.erase(it);
+                            }
+                        }
+                        cout << "继续还是停止？（输入“继续”或者“停止”）" << endl;
+                        cin >> mid;
+                        while (mid != "继续" && mid != "停止") {
+                            cout << "输入错误内容，请重新输入" << endl;
+                            cin >> mid;
+                        }
+                    }
+                }
+                if (choice == "C") {
+                    for (auto it = customer1.begin(); it != customer1.end(); it++) {
+                        if (it->getConsumeNum() == example.getNum()) {
+                            it = customer1.erase(it);
+                            break;
+                        }
+                    }
+                    for (auto it = customer.begin(); it != customer.end(); it++) {
+                        if (example.getNum() == (*it).getNum()) {
+                            it = customer.erase(it);
+                            break;
+                        }
+                    }
+                }
+                if (choice == "D") {
+                    bool sign = false;
+                    for (vector<ShopCar>::iterator it = customer1.begin(); it != customer1.end(); it++) {
+                        if (example.getNum() == it->getConsumeNum()) {
+                            sign = true;
+                            for (vector<ShopLinked>::iterator it1 = customer2.begin(); it1 != customer2.end(); it1++) {
+                                if (it->getShopCarNum() == it1->getStream()) {
+                                    cout << *it1 << endl;
+                                }
+                            }
+                        }
+                    }
+                    if (sign == false) {
+                        cout << "此用户无购物车商品" << endl;
+                    }
+                }
+            }
+            else {
+                cout << "查无此人" << endl;
+                cout << "是否加入此顾客（输入“是”或“否”）？" << endl;
+                string str;
+                cin >> str;
+                if (str == "是") {
+                    customer.push_back(example);
+                }
+                else {
+            
+                }
+            }
+            file.open("customers.txt", ios::out);
+            for (auto it = customer.begin(); it != customer.end(); it++) {
+                file << *it << endl;
+            }
+            file.close();
+            file.open("ShopCarAll.txt", ios::out);
+            for (auto it = customer1.begin(); it != customer1.end(); it++) {
+                file << *it;
+            }
+            file.close();
+            customer1.clear();
+            customer2.clear();
         }
         else if (str == "B") { //商品操作
 
@@ -94,13 +309,29 @@ int main() {
                 if (!flag) {
                     cout << "不存在待删除商品" << endl;
                 }
+                for (vector<Goods>::iterator it = midTemp.begin(); it != midTemp.end(); it++) {
+                    cout << *it << endl;
+                    ComDec(customer1, customer2, *it);
+                }
                 //覆盖文件
+                file.open("customers.txt", ios::out);
+                for (auto it = customer.begin(); it != customer.end(); it++) {
+                    file << *it << endl;
+                }
+                file.close();
+                file.open("ShopCarAll.txt", ios::out);
+                for (auto it = customer1.begin(); it != customer1.end(); it++) {
+                    file << *it;
+                }
+                file.close();
                 file.open("goods.txt", ios::out);
                 for (auto p : goods) {
                     file << p << endl;
                 }
                 file.close();
                 cout << "商品删除成功" << endl;
+                customer1.clear();
+                customer2.clear();
             }
             else if (op == "C") {
                 cout << "请输入想要查询商品编号:";
@@ -217,7 +448,7 @@ int main() {
                     }
                 }
             }
-
+        }
 
             else if (str == "C") { //商品目录操作
                 file.open("Table.txt", ios::in);
@@ -409,8 +640,9 @@ int main() {
         }
         cout << "使用已完成，期待下次使用" << endl;
         return 0;
+        
     }
-}
+    
     
 
 
