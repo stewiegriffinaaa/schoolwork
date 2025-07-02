@@ -6,6 +6,7 @@
 using namespace std;
 class Goods {
 	//string type = "Goods";
+	//string si = "G";
 	string id;
 	string name;
 	double price;
