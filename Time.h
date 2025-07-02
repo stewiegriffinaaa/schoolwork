@@ -7,11 +7,12 @@ struct Time
 	int month = 0;
 	int day = 0;
 };
-ostream& operator<<(ostream& out, Time& num) {
-	out << num.year << "-" << num.month << "-" << num.day;
+inline ostream& operator<<(ostream& out, Time& num) {
+	out << num.year  << "-" << num.month << "-" << num.day;
 	return out;
 }
-istream& operator>>(istream& in, Time& num) {
-	in >> num.year  >> num.month >> num.day;
+inline istream& operator>>(istream& in, Time& num) {
+	char a, b;
+	in >> num.year  >> a >>  num.month >> b >> num.day;
 	return in;
 }//修改点七
