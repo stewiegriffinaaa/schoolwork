@@ -6,26 +6,27 @@
 #include<time.h>
 using namespace std;
 #include<sstream>
-class ShopCar :public Consume
+class ShopCar
 {
-protected:
-	int ShopCarNum;
-	int ConsumeNum;
+	string ShopCarNum;
+	string ConsumeNum;
 	Time start;
 	Time end;
 	vector<Goods> num;
 	vector<Time> addnum;
 public:
-	ShopCar(string _num, string _name, char _class, string _email, Time _Start, int _ShopCar, int _ConsumeNum, Time _start, Time _end);
-	ostringstream& show(ostringstream& out);
+	ShopCar();
+	ShopCar(Consume example);
 	void add(Goods sample);
 	void dec(Goods type, int numb);
-	int getShopCarNum();
-	int getConsumeNum();
-	Time getStart();
-	Time getEnd();
-	vector<Goods> getNum();
-	vector<Time> getAddnum();
+	string& getShopCarNum();
+	string& getConsumeNum();
+	Time& getStart();
+	Time& getEnd();
+	vector<Goods>& getNum();
+	vector<Time>& getAddnum();
 	void CompleteCut(Goods type);
 	~ShopCar();
+	friend ostream& operator<<(ostream& out, ShopCar& example);
 };
+ostream& operator<<(ostream& out, ShopCar& example);
