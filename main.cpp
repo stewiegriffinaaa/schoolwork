@@ -10,6 +10,7 @@
 #include"Consume.h"
 #include"ShopCarDate.h"
 #include"ShopCar.h"
+#include"TablesOP.h"
 //先读出所有文件到队列里面，文本文件储存方式应该是 xxx xx
 using namespace std;
 #include<sstream>
@@ -17,8 +18,8 @@ using namespace std;
 void showgoods(Goods& a);
 void showgoodTables(GoodsTable& a);
 Goods getgoods(vector<Goods> num, string id);
-bool SearchById(string id, Goods temp);/*注：这里面有多次读取文件操作，之后要试试能不能给他封装到一个函数中当作形参传进去，否则太消耗性能*/
-bool SearchByName(string name, Goods temp);
+//bool SearchById(string id, Goods temp);/*注：这里面有多次读取文件操作，之后要试试能不能给他封装到一个函数中当作形参传进去，否则太消耗性能*/
+//bool SearchByName(string name, Goods temp);
 void showgoods(Goods& a) {
     cout << "商品名称" << a.getName() << " 商品编号" << a.getId() << " 商品价格" << a.getPrice() << " 商品库存" << a.getNum() << " 商品上架时间" << a.getTime() << endl;
 }
@@ -67,8 +68,8 @@ int main() {
     fstream file;
     string op;
     cout << "\n请选择操作类型：\n";
-    cout << "请输出你要操作的业务\nA:顾客\nB:商品\nC:购物车\nD购物车商品信息\nE:商品分类目录\nF:保存此次操作并退出" << endl;
-    cout << "请输入选项（A/B/C/D/E）: ";
+    cout << "请输出你要操作的业务\nA:顾客\nB:商品\nC:商品分类目录\nF:保存此次操作并退出" << endl;
+    cout << "请输入选项（A/B/C/F）: ";
     cin >> str;
     while (str != "F") {
         vector<Goods> goods;
@@ -228,6 +229,9 @@ int main() {
                         cout << "此用户无购物车商品" << endl;
                     }
                 }
+                else {
+                    cout << "输入非法" << endl;
+                }
             }
             else {
                 cout << "查无此人" << endl;
@@ -280,7 +284,7 @@ int main() {
                 cout << "已完成添加" << endl;
                 file.close();
             }
-            else if (op == "B") {/*删除还需要删除购物车类，和商品清单类商品未完成*/
+            else if (op == "B") {
                 vector<Goods> goods;
                 Goods temp;
                 file.open("goods.txt", ios::in);
@@ -431,6 +435,9 @@ int main() {
                                 cin >> newNum;
                                 it->setNum(newNum);
                             }
+                            else {
+                                cout << "输入无效字符" << endl;
+                            }
                             cout << "更改完成" << endl;
                             break;
                         }
@@ -450,193 +457,62 @@ int main() {
             }
         }
 
-            else if (str == "C") { //商品目录操作
-                file.open("Table.txt", ios::in);
-                vector<GoodsTable>Tables;
-                GoodsTable temp;
-                while (file >> temp) {
-                    Tables.push_back(temp);
-                }
-                file.close();
-                //测试用，输出文本
-                for (auto it : Tables) {
-                    showgoodTables(it);
-                }
-                for (auto it : Tables) {
-                    vector<string>childrenId = split(it.getChildrenId(), ',');
-                    if (childrenId.size() == 0) {
-                        continue;
-                    }
-                    for (auto it1 : Tables) { //防止乱序存储
-                        //                cout<<"这里梅卡斯2"<<endl;
-                        for (auto str : childrenId) {
-                            if (str == it1.getId()) {
-                                //                            cout<<"这里梅卡斯"<<endl;
-                                GoodsTable* temp1 = &it1;
-                                it.addChild(temp1);
-                            }
-                        }
-                    }
-                }
-                cout << "请输入您想要对目录做的操作:\nA:添加节点\nB:删除节点\nC:查询节点\nD:修改节点" << endl;
-                string op;
-                cin >> op;
-                if (op == "A") {
-                    string newID;
-                    cout << "请输入父目录ID ";
-                    cin >> newID;
-                    cout << endl;
-                    bool flag = false;
-                    for (auto it : Tables) {
-                        if (it.getId() == newID) {
-                            flag = true;
-
-                            cout << "请按照新增目录ID,姓名，目录等级（父级目录加1），补充说明，创建时间(默认子节点数量为0，如需添加，请依次添加目录)" << endl;
-                            string newId, newName, newAddition, newTime;
-                            int newLevel;
-                            cin >> newId >> newName >> newLevel >> newAddition >> newTime;
-                            //string id, string name, int level, string addition,string time
-                            GoodsTable temp(newId, newName, newLevel, newAddition, 0, newTime);
-                            it.addChild(&temp);
-                            Tables.push_back(temp);
-                            break;
-                        }
-                    }
-                    if (!flag) {
-                        cout << "未找到上级目录" << endl;
-                    }
-                    file.open("Table.txt", ios::out);
-                    //写入文件
-                    for (auto it : Tables) {
-                        cout << it;
-                        file << it;
-                    }
-                    file.close();
-                }
-                else if (op == "B") {
-                    cout << "请输入要删除目录ID" << endl;
-                    string RemoveId;
-                    cin >> RemoveId;
-                    bool flag = false;
-                    for (auto it : Tables) {
-                        if (it.getId() == RemoveId) {
-                            flag = true;
-                            //寻找父节点；
-                            GoodsTable* par = it.getParent();
-                            par->removeChild(&it);
-                            //覆盖文件
-                            file.open("Table.txt", ios::out);
-                            //写入文件
-                            for (auto it : Tables) {
-                                file << it;
-                            }
-                            file.close();
-                            cout << "删除完成" << endl;
-                            break;
-                        }
-                    }
-                    if (!flag) {
-                        cout << "未找到该目录" << endl;
-                    }
-                }
-                else if (op == "C") {
-                    cout << "请输入您想查询的目录id" << endl;
-                    bool flag;
-                    string SearchId;
-                    cin >> SearchId;
-                    for (auto it : Tables) {
-                        if (it.getId() == SearchId) {
-                            cout << "该目录名称为" << it.getName() << ",有" << it.getNum() << "个子目录" << ",子目录ID为" << it.getChildrenId() << endl;
-                            flag = true;
-                            break;
-                        }
-                    }
-                    if (!flag) {
-                        cout << "未找到该目录" << endl;
-                    }
-                }
-                else if (op == "D") {
-                    //可修改分析：name,位置,补充说明
-                    string ChangeId;
-                    cout << "请输入待修改目录ID";
-                    cin >> ChangeId;
-                    cout << endl;
-                    bool flag = false;
-                    for (auto it : Tables) {
-                        if (it.getId() == ChangeId) {
-                            flag = true;
-                            string op2;
-                            cout << "请输入待修改属性:\tA:目录姓名\tB:补充说明\tC:目录位置:\t";
-                            cin >> op2;
-                            cout << endl;
-                            if (op2 == "A") {
-                                string newName;
-                                cout << "请输入新名字:";
-                                cin >> newName;
-                                cout << endl;
-                                it.setName(newName);
-                                break;
-                            }
-                            else if (op2 == "B") {
-                                string newAddition;
-                                cout << "请输入新说明:";
-                                cin >> newAddition;
-                                cout << endl;
-                                it.setName(newAddition);
-                            }
-                            else if (op2 == "C") {
-                                string newParentId;
-                                bool newflag = false;
-                                cout << "请输入新父目录ID:";
-                                cin >> newParentId;
-                                cout << endl;
-                                for (auto newpar : Tables) {
-                                    if (newpar.getId() == newParentId) {
-                                        newflag = true;
-                                        GoodsTable* t = it.getParent();
-                                        t->removeChild(&(it));
-                                        newpar.addChild(&(it));
-                                        break;
-                                    }
-                                }
-                                if (!newflag) {
-                                    cout << "未找到该新父级目录" << endl;
-                                }
-                            }
-                        }
-                        if (!flag) {
-                            cout << "未找到该目录" << endl;
-                        }
-                        else {
-                            file.open("Table.txt", ios::out);
-                            //写入文件
-                            for (auto it : Tables) {
-                                file << it;
-                            }
-                            file.close();
-                            cout << "修改完成" << endl;
-                        }
-                    }
-                }
-
-            }
-
-
-
-
-            else if (str == "D") { //对购物车的操作
-
-            }
-
-            else if (str == "E") { //对购物车商品清单进行操作
-
-
-            }
-
-
-
-            cout << "请输出你要操作的业务\nA:顾客\nB:商品\nC:购物车\nD购物车商品信息\nE:商品分类目录\nF:保存此次操作并退出" << endl;
-            cin >> str;
+               else if (str == "C")
+               { // 商品目录操作
+                   file.open("Table.txt", ios::in);
+                   vector<GoodsTable> Tables;
+                   GoodsTable temp;
+                   while (file >> temp)
+                   {
+                       Tables.push_back(temp);
+                   }
+                   file.close();
+                   // 测试用，输出文本
+                   for (auto it : Tables)
+                   {
+                       showgoodTables(it);
+                   }
+                   buildLink(Tables);
+                   cout << "请输入您想要对目录做的操作:\nA:添加节点\nB:删除节点\nC:查询节点\nD:修改节点" << endl;
+                   char op;
+                   cin >> op;
+                   if (cin.fail())
+                   {
+                       cin.clear();
+                       cin.ignore(INT_MAX, '\n');
+                       cout << "输入错误，请重新输入操作类型！" << endl;
+                       return -1;
+                   }
+                   if (op == 'A')
+                   {
+                       Add(Tables, file);
+                   }
+                   else if (op == 'B')
+                   {
+                       Remove(Tables, file);
+                   }
+                   else if (op == 'C')
+                   {
+                       Search(Tables);
+                   }
+                   else if (op == 'D')
+                   {
+                       Change(Tables, file);
+                   }
+                   else
+                   {
+                       cout << "抱歉，" << op << "属于无效字符。" << endl;
+                   }
+    }
+               else
+               {
+                   cout << "输入错误，请在A,B,C中选择" << endl;
+    }
+               system("pause");
+               system("cls");
+                cout << "\t\t\t\t\t网上购物系统祝您使用愉快" << endl;
+                cout << "请输入你要操作的业务\nA:顾客\nB:商品\nC:商品分类目录\nD购物车\nE:购物车商品信息\nF:保存此次操作并退出" << endl;
+                cin >> str;
         }
         cout << "使用已完成，期待下次使用" << endl;
         return 0;
